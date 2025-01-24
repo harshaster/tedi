@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T-edi : Just a text editor</title>
     <style>
-        body{
+        body {
             margin: 0;
             overflow: hidden;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
-        textarea{
+
+        textarea {
             padding: 1rem;
             padding-top: 0;
             font-size: x-large;
@@ -21,11 +23,13 @@
             width: 100%;
             height: 88vh;
         }
-        textarea:focus-visible{
+
+        textarea:focus-visible {
             outline: none;
             border: none;
         }
-        .clr-btn{
+
+        .clr-btn {
             width: 1.5rem;
             height: 1.5rem;
             border-radius: 50%;
@@ -33,7 +37,8 @@
             outline: none;
             cursor: pointer;
         }
-        .toolbar{
+
+        .toolbar {
             position: static;
             padding: 0.7rem;
             gap: 10px;
@@ -43,11 +48,15 @@
         }
     </style>
 </head>
+
 <body>
     <div class="toolbar">
         <button id="plus">&plus;</button>
         <button id="minus">&minus;</button>
         <input type="color" id="clr-inp">
+        <select name="font" id="font-options">
+            <option>System Default</option>
+        </select>
         <button id="save">Save</button>
         <button id="open">Open</button>
         <div style="display: inline;">
@@ -63,50 +72,65 @@
         let minus = document.getElementById('minus');
         let textarea = document.querySelector('textarea');
         let clrInp = document.getElementById('clr-inp');
+        let fontInp = document.getElementById('font-options');
         let saveLocal = document.getElementById('saveLocal');
-        
+
         textarea.style.fontSize = fontSize + 'px';
 
-        plus.addEventListener('click', ()=>{
+        plus.addEventListener('click', () => {
             fontSize += 2;
             textarea.style.fontSize = fontSize + 'px';
         });
 
-        minus.addEventListener('click', ()=>{
+        minus.addEventListener('click', () => {
             fontSize -= 2;
             textarea.style.fontSize = fontSize + 'px';
         });
 
-        clrInp.addEventListener('change', ()=>{
+        clrInp.addEventListener('change', () => {
             textarea.style.color = clrInp.value;
         });
 
-        window.onload = function(){
+        fontInp.addEventListener('change', () => {
+            textarea.style.fontFamily = fontInp.value;
+            localStorage.setItem('t-edi-font', fontInp.value);
+        });
+
+        window.onload = function () {
             textarea.focus();
             let text = localStorage.getItem('t-edi-text');
-            if(text){
+
+            if (text) {
                 textarea.value = text;
             }
+
             interval = setInterval(saveInLocalStorage, 1000);
+
+            if ("queryLocalFonts" in window) {
+                loadSystemFontsList();
+            } else {
+                fontInp.style.display = 'none';
+            }
+
         }
 
         document.getElementById('save').addEventListener('click', saveDoc);
 
         document.getElementById('open').addEventListener('click', openDoc);
 
-        saveLocal.addEventListener('change', (e)=>{
-            if(e.target.checked){
+        saveLocal.addEventListener('change', (e) => {
+            if (e.target.checked) {
                 interval = setInterval(saveInLocalStorage, 1000);
-            }else{
+            } else {
                 clearInterval(interval);
                 this.localStorage.removeItem('t-edi-text');
             }
         });
 
-        function saveDoc(){
-            if(!confirm('Do you want to save the document?')) return;
+        function saveDoc() {
+            if (!confirm('Do you want to save the document?')) return;
             let text = textarea.value;
-            let blob = new Blob([text], {type: 'text/plain'});
+            let blob = new Blob([text], { type: 'text/plain' });
             let url = URL.createObjectURL(blob);
             let a = document.createElement('a');
             a.href = url;
@@ -114,26 +138,52 @@
             a.click();
         }
 
-        function openDoc(){
-            if(!confirm('Do you want to open a document? Current text will be lost.')) return;
+        function openDoc() {
+            if (!confirm('Do you want to open a document? Current text will be lost.')) return;
             let input = document.createElement('input');
             input.type = 'file';
             input.multiple = false;
             input.accept = 'text/plain';
             input.click();
-            input.addEventListener('change', ()=>{
+            input.addEventListener('change', () => {
                 let file = input.files[0];
                 let reader = new FileReader();
                 reader.readAsText(file);
-                reader.onload = function(){
+                reader.onload = function () {
                     textarea.value = reader.result;
                 }
             });
         }
 
-        function saveInLocalStorage(){
+        function saveInLocalStorage() {
             localStorage.setItem('t-edi-text', textarea.value);
+        }
+
+        async function loadSystemFontsList() {
+            try {
+                const availableFonts = await window.queryLocalFonts();
+                const fontFamilies = availableFonts.filter(font => font.style === 'Regular').map(font => font.family);
+                for (const font of fontFamilies) {
+                    const option = document.createElement('option');
+                    option.innerText = font;
+                    option.value = font;
+                    option.style.fontFamily = font;
+                    fontInp.appendChild(option);
+                }
+                loadFontFromLocalStorage();
+            } catch (err) {
+                console.error(err.name, err.message);
+            }
+        }
+
+        function loadFontFromLocalStorage() {
+            const font = localStorage.getItem('t-edi-font');
+            if (font) {
+                fontInp.value = font;
+                textarea.style.fontFamily = font;
+            }
         }
     </script>
 </body>
+
 </html>
