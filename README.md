@@ -11,3 +11,4 @@ just a TExt EDitor.
 - Open text file
 - Sync changes
 - Get it back anytime you open
+- Now supports markdown (update: 14-7-2025)
